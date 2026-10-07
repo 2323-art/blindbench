@@ -174,9 +174,9 @@ export async function createApp({ payments, directory = new URL('./.local/', imp
     res.set('PAYMENT-RESPONSE', Buffer.from(JSON.stringify(receipt)).toString('base64')).json({ paid: true });
   });
   app.post('/api/comparisons', async (req,res) => {
-    let details;try{details=challengeDetails(req.body.challengerId??'birch');}catch(e){return res.status(400).json({error:e.message});}
+    let details;try{const opponent=req.body.opponentId ? (await listMasumiAgents()).agents.find(a=>a.id===req.body.opponentId) : undefined;if(req.body.opponentId&&!opponent)throw new Error('Choose a listed Masumi agent.');details=challengeDetails(req.body.challengerId??'birch',opponent);}catch(e){return res.status(400).json({error:e.message});}
     if (Object.values(data.comparisons).some(j => j.status === 'running')) return res.status(409).json({ error: 'A comparison is already running.' });
-    const job = { id: randomUUID(), type: 'comparison', status: 'running', events: [], total: details.total, challengerId:details.challengerId,opponentId:details.opponentId,winnerId:details.winnerId, createdAt: new Date().toISOString() };
+    const job = { id: randomUUID(), type: 'comparison', status: 'running', events: [], total: details.total, challengerId:details.challengerId,opponentId:details.opponentId,winnerId:details.winnerId,opponent:details.opponent,challengerScore:details.challengerScore,opponentScore:details.opponentScore, createdAt: new Date().toISOString() };
     data.comparisons[job.id] = job;
     await store.save();
     res.status(202).json(job);

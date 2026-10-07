@@ -49,7 +49,7 @@ test('Simulated comparison is session-specific and never calls wallet',async t=>
   const f=await fixture(t),c=await f.client(),other=await f.client();
   assert.equal((await c.request('/api/comparisons',{challengerId:'atlas'})).status,400);
   const r=await c.request('/api/comparisons',{challengerId:'finch'});assert.equal(r.status,202);
-  assert.equal(r.body.total,4200000);assert.equal(r.body.winnerId,'atlas');assert.equal(r.body.challengerId,'finch');
+  assert.equal(r.body.total,4200000);assert.equal(r.body.winnerId,'finch');assert.equal(r.body.challengerId,'finch');
   assert.equal((await other.request('/api/jobs/'+r.body.id)).status,404);assert.equal(f.signs(),0);
 });
 

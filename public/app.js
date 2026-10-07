@@ -1,5 +1,5 @@
 const app = document.querySelector('#app');
-let taskType = 'summary', statusError = false, challengerId='birch';
+let taskType = 'summary', statusError = false, challengerId='birch', opponentId='';
 let registry, registryError='', registryLoading=false, creatorModel='new-agent';
 let state, wallet, view = 'buyer', taskId = 'launch', budget = '2.2', direct = false, current = null, polling, busy = false;
 const money = n => `${(n / 1e6).toFixed(1)} tADA`;
@@ -82,14 +82,14 @@ async function purchase(agentId) {
 }
 function announcement() {
   const result=state.comparisons?.filter(c=>c.status==='complete').at(-1);
-  const pool=[state.birch,...state.agents], challenger=pool.find(a=>a.id===(result?.challengerId||'birch')), opponent=pool.find(a=>a.id==='atlas');
-  const winner=challenger.score>opponent.score?challenger:opponent, loser=winner.id===challenger.id?opponent:challenger;
+  const pool=[state.birch,...state.agents], challenger=pool.find(a=>a.id===(result?.challengerId||'birch')), opponent=result?.opponent||pool.find(a=>a.id==='atlas');
+  const winner={...challenger,score:result?.challengerScore??94}, loser={...opponent,score:result?.opponentScore??70};
   return `<section class="announcement"><div class="announcement-mark">↗</div><div><div class="eyebrow">DISCOVERY ANNOUNCEMENT · SIMULATED</div><h2>${escape(winner.name)} outperformed ${escape(loser.name)}.</h2><p>${winner.score} vs ${loser.score} on the product launch benchmark. One scripted comparison; not a general superiority claim.</p></div><button class="secondary try-birch" data-winner="${winner.id}">Try this agent <span>↗</span><small>${money(winner.price+state.fee)} including fee</small></button></section>`;
 }
 function bindTry() { document.querySelectorAll('.try-birch').forEach(b => b.onclick = () => { const id=b.dataset.winner||'birch', agent=[state.birch,...state.agents].find(a=>a.id===id);direct=id==='birch'&&!state.enrolled; taskType='summary'; taskId='launch'; budget=String((agent.price+state.fee)/1e6); view='buyer'; current=null; shell(); }); }
 function evidence() { return ''; }
 function creatorPanel() {
-  return `<section class="panel creator-panel"><div class="panel-heading"><div><div class="eyebrow">FOR AGENT CREATORS</div><h2>Add your agent to the benchmarks.</h2></div></div><label for="creator-model">Select model</label><select id="creator-model"><option value="new-agent" ${creatorModel==='new-agent'?'selected':''}>New Agent</option>${(registry?.agents||[]).slice(0,9).map(a=>`<option value="${escape(a.id)}" ${creatorModel===a.id?'selected':''}>${escape(a.name)}</option>`).join('')}</select><p class="fine">${registry?`Live Masumi Preprod registry · ${registry.agents.length} listings · refreshed ${new Date(registry.fetchedAt).toLocaleTimeString()}`:registryError?escape(registryError):'Loading real Masumi agents…'} <button class="text-button" id="refresh-registry">Refresh list</button></p><div id="creator-details"></div></section>`;
+  return `<section class="panel creator-panel"><div class="panel-heading"><div><div class="eyebrow">FOR AGENT CREATORS</div><h2>Add your agent to the benchmarks.</h2></div></div><label for="creator-model">Select model</label><select id="creator-model"><option value="new-agent" ${creatorModel==='new-agent'?'selected':''}>New Agent</option>${(registry?.agents||[]).slice(0,9).map(a=>`<option value="${escape(a.id)}" ${creatorModel===a.id?'selected':''}>${escape(a.name)}</option>`).join('')}</select><p class="fine">${registry?`Live Masumi Preprod registry · ${Math.min(9,registry.agents.length)} listings · refreshed ${new Date(registry.fetchedAt).toLocaleTimeString()}`:registryError?escape(registryError):'Loading real Masumi agents…'} <button class="text-button" id="refresh-registry">Refresh list</button></p><div id="creator-details"></div></section>`;
 }
 function creatorDetails(){
   const demo=creatorModel==='new-agent', chosen=registry?.agents.find(a=>a.id===creatorModel);
@@ -117,7 +117,7 @@ async function resetBenchmark(){
 async function loadRegistry(){
   if(registryLoading)return;registryLoading=true;
   try{registry=await api('/api/masumi-agents');registryError='';}catch(e){registryError=e.message;}finally{registryLoading=false;}
-  if(view==='compare'){const panel=document.querySelector('.creator-panel');if(panel){panel.outerHTML=creatorPanel();bindCreator(false);}}
+  if(view==='compare')renderCompare();
 }
 function bindCreator(load=true){
   document.querySelector('#creator-model').onchange=e=>{creatorModel=e.target.value;creatorDetails();};
@@ -125,16 +125,20 @@ function bindCreator(load=true){
   if(load&&!registry&&!registryError)void loadRegistry();
 }
 function renderCompare() {
+  const opponents=(registry?.agents||[]).slice(0,10);
+  if(!opponents.some(a=>a.id===opponentId))opponentId=opponents[0]?.id||'';
+  const opponent=opponents.find(a=>a.id===opponentId);
   const challenger=[state.birch,...state.agents].find(a=>a.id===challengerId);
   if(state.enrollment && !current)current=state.enrollment;
   if(current?.type==='enrollment'&&current.status==='running'&&!busy&&!statusError){busy=true;startPolling(current.id);}
-  document.querySelector('#content').innerHTML = `${state.announced?announcement():''}<div class="creator-challenge-grid">${creatorPanel()}<section class="panel"><div class="panel-heading"><h2>Newcomer challenge</h2></div><div class="matchup"><div><div class="avatar ${challenger.id} big">${challenger.initials}</div><label for="challenger-model">Challenger</label><select id="challenger-model" ${busy?'disabled':''}>${[state.birch,...state.agents.filter(a=>a.id!=='birch'&&a.id!=='atlas')].map(a=>`<option value="${a.id}" ${a.id===challengerId?'selected':''}>${escape(a.name)}</option>`).join('')}</select></div><span class="versus">vs</span><div><div class="avatar atlas big">At</div><h3>Agent Atlas</h3><p>Established · rank #${state.enrolled?'3':'2'}</p></div></div><div class="bill"><div><span>One ${escape(challenger.name)} run</span><b>${money(challenger.price)}</b></div><div><span>One Atlas run</span><b>3.0 tADA</b></div><div><span>Comparison service fee</span><b>0.2 tADA</b></div><div class="bill-total"><span>Simulated provider payment</span><b>${money(challenger.price+3000000+state.fee)}</b></div></div><button class="primary full" id="challenge" ${busy?'disabled':''}>${busy?'Run in progress…':'Simulate payment & compare'} <span>→</span></button><p class="fine">No funds move. The buyer’s real wallet is not used for this comparison.</p></section></div><div id="run"></div><div id="comparison-evidence"></div>`;
+  document.querySelector('#content').innerHTML = `${state.announced?announcement():''}<div class="creator-challenge-grid">${creatorPanel()}<section class="panel"><div class="panel-heading"><h2>Newcomer challenge</h2></div><div class="matchup"><div><div class="avatar ${challenger.id} big">${challenger.initials}</div><label for="challenger-model">Challenger</label><select id="challenger-model" ${busy?'disabled':''}>${[state.birch,...state.agents.filter(a=>a.id!=='birch'&&a.id!=='atlas')].map(a=>`<option value="${a.id}" ${a.id===challengerId?'selected':''}>${escape(a.name)}</option>`).join('')}</select></div><span class="versus">vs</span><div><div class="avatar atlas big">M</div><label for="opponent-model">Masumi agent</label><select id="opponent-model" ${busy||!opponents.length?'disabled':''}>${opponents.length?opponents.map(a=>`<option value="${escape(a.id)}" ${a.id===opponentId?'selected':''}>${escape(a.name)}</option>`).join(''):'<option>Loading Masumi agents…</option>'}</select><p>Simulated ranking · #2</p></div></div><div class="bill"><div><span>One ${escape(challenger.name)} run</span><b>${money(challenger.price)}</b></div><div><span>One ${escape(opponent?.name||'Masumi agent')} run (simulated price)</span><b>3.0 tADA</b></div><div><span>Comparison service fee</span><b>0.2 tADA</b></div><div class="bill-total"><span>Simulated provider payment</span><b>${money(challenger.price+3000000+state.fee)}</b></div></div><button class="primary full" id="challenge" ${busy||!opponent?'disabled':''}>${busy?'Run in progress…':'Simulate payment & compare'} <span>→</span></button><p class="fine">Scripted demo: your challenger always wins. Scores and prices are simulated; no Masumi agent is run and no funds move.</p></section></div><div id="run"></div><div id="comparison-evidence"></div>`;
   bindCreator(); bindTry();
+  document.querySelector('#opponent-model').onchange=e=>{opponentId=e.target.value;renderCompare();};
   document.querySelector('#challenger-model').onchange=e=>{challengerId=e.target.value;renderCompare();};
   document.querySelector('#challenge').onclick = async () => {
     if (busy) return;
     busy=true; renderCompare();
-    try { current=await api('/api/comparisons',{challengerId}); startPolling(current.id); renderRun(); } catch(e) { busy=false; toast(e.message); renderCompare(); }
+    try { current=await api('/api/comparisons',{challengerId,opponentId}); startPolling(current.id); renderRun(); } catch(e) { busy=false; toast(e.message); renderCompare(); }
   };
   renderRun();
 }
