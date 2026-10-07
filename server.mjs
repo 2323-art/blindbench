@@ -150,7 +150,7 @@ export async function createApp({ payments, directory = new URL('./.local/', imp
     const job = data.jobs[req.params.id];
     if (!job) return res.sendStatus(404);
     const requirements = payments.requirements(job);
-    const required = { x402Version: 2, resource: { url: `${localUrl}/api/resource/${job.id}`, description: 'Blindbench summarisation', mimeType: 'application/json' }, accepts: [requirements] };
+    const required = { x402Version: 2, resource: { url: `${localUrl}/api/resource/${job.id}`, description: 'AgentOnboard summarisation', mimeType: 'application/json' }, accepts: [requirements] };
     if (!req.get('PAYMENT-SIGNATURE')) return res.status(402).set('PAYMENT-REQUIRED', Buffer.from(JSON.stringify(required)).toString('base64')).json(required);
     let payload;
     try { payload = JSON.parse(Buffer.from(req.get('PAYMENT-SIGNATURE'),'base64').toString()); } catch { return res.status(400).json({ error: 'Invalid payment header.' }); }
@@ -211,5 +211,5 @@ export async function createApp({ payments, directory = new URL('./.local/', imp
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const { app, setUrl } = await createApp();
   const port = Number(process.env.PORT || 4318);
-  const server = app.listen(port, '127.0.0.1', () => { setUrl(`http://127.0.0.1:${server.address().port}`); console.log(`Blindbench: http://127.0.0.1:${server.address().port}`); });
+  const server = app.listen(port, '127.0.0.1', () => { setUrl(`http://127.0.0.1:${server.address().port}`); console.log(`AgentOnboard: http://127.0.0.1:${server.address().port}`); });
 }
