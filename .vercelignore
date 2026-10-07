@@ -1,0 +1,11 @@
+.local
+.env
+.env.*
+node_modules
+evidence
+tests
+server.mjs
+lib/store.mjs
+scripts
+README.md
+DESIGN.md
