@@ -8,7 +8,7 @@ Live URL: https://blindbench-red.vercel.app
 
 Hosted checkout verified on 7 October 2026: Finch purchase 1.2 test ADA plus 0.168405 test ADA network fee, transaction `5b8c67c511322bdac38096792e8d0c1d2838d3219e161c32b6e40e07d416e41e`. Block inclusion was independently checked with Koios; the hosted service delivered the prepared summary. Evidence: `evidence/hosted-payment-results.json`.
 
-Rankings and the simulated comparison are public. To enable real Cardano preprod purchases, open **Test wallet (analytics)** and enter the code saved locally in `.local/demo-access.txt`. Access lasts two hours in that browser. The shared wallet has a 20 test-ADA cumulative demo spending cap, including network fees; pending purchases reserve up to 1 extra test ADA for fees.
+Rankings and the simulated comparison are public. To enable real Cardano preprod purchases, open **Test wallet (analytics)** and enter the code saved locally in `.local/demo-access.txt`. Access lasts two hours in that browser. The shared wallet has a 500 test-ADA cumulative demo spending cap, including network fees; pending purchases reserve up to 1 extra test ADA for fees.
 
 Vercel runs `api/index.mjs`; server-only encrypted environment variables hold the dedicated test-wallet mnemonic and session/access secrets. Receipts and the shared payment lock are stored in private Vercel Blob storage using conditional writes. Reads request uncompressed responses so the original strong ETag is preserved. Session cookies isolate visitors' purchase histories. The visible private evidence cards remain demo previews.
 

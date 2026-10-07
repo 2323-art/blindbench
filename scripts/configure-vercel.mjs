@@ -6,7 +6,7 @@ const wallets=JSON.parse(await readFile(new URL('../.local/wallets.json',import.
 let config;
 const configFile=new URL('../.local/hosting-secrets.json',import.meta.url);
 try{config=JSON.parse(await readFile(configFile,'utf8'));}catch(e){if(e.code!=='ENOENT')throw e;config={sessionSecret:randomBytes(32).toString('base64url'),accessCode:randomBytes(16).toString('hex')};await writeFile(configFile,JSON.stringify(config),{mode:0o600,flag:'wx'});}
-const entries={BUYER_MNEMONIC:wallets.buyer.mnemonic,SELLER_ADDRESS:wallets.seller.address,DEMO_SESSION_SECRET:config.sessionSecret,DEMO_ACCESS_CODE:config.accessCode,DEMO_SPEND_CAP_LOVELACE:'20000000'};
+const entries={BUYER_MNEMONIC:wallets.buyer.mnemonic,SELLER_ADDRESS:wallets.seller.address,DEMO_SESSION_SECRET:config.sessionSecret,DEMO_ACCESS_CODE:config.accessCode,DEMO_SPEND_CAP_LOVELACE:'500000000'};
 for(const [key,value]of Object.entries(entries)){
   await new Promise((resolve,reject)=>{
     const child=spawn(process.execPath,[cli,'env','add',key,'production','--sensitive','--yes'],{stdio:['pipe','pipe','pipe'],windowsHide:true});
